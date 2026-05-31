@@ -3,10 +3,12 @@ import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { InsightCard } from '../../components/ui/InsightCard';
+import { SkeletonInsightCard } from '../../components/ui/Skeleton';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { useAIInsights, useGenerateInsight } from '../../hooks/useAIInsights';
 
 export default function InsightsScreen() {
-  const { data: insights = [], isLoading } = useAIInsights();
+  const { data: insights = [], isLoading, isError, refetch } = useAIInsights();
   const { mutate: generateInsight, isPending } = useGenerateInsight();
 
   const weekStart = new Date();
@@ -19,9 +21,7 @@ export default function InsightsScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <View>
-            <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.text, fontFamily: 'Syne_800ExtraBold' }}>
-              Insights
-            </Text>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.text, fontFamily: 'Syne_800ExtraBold' }}>Insights</Text>
             <Text style={{ fontSize: 13, color: Colors.muted }}>
               {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} –{' '}
               {weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -38,7 +38,9 @@ export default function InsightsScreen() {
         </View>
 
         {isLoading ? (
-          <ActivityIndicator color={Colors.violet} style={{ marginTop: 40 }} />
+          Array.from({ length: 3 }).map((_, i) => <SkeletonInsightCard key={i} />)
+        ) : isError ? (
+          <ErrorState message="Could not load insights" onRetry={refetch} />
         ) : insights.length === 0 ? (
           <View style={{ alignItems: 'center', marginTop: 60, gap: 12 }}>
             <Text style={{ fontSize: 40 }}>🧠</Text>
@@ -46,11 +48,8 @@ export default function InsightsScreen() {
             <Text style={{ fontSize: 14, color: Colors.muted, textAlign: 'center' }}>Log 3+ days to unlock your first AI insight.</Text>
           </View>
         ) : (
-          insights.map((insight) => (
-            <InsightCard key={insight.id} insight={insight} />
-          ))
+          insights.map((insight) => <InsightCard key={insight.id} insight={insight} />)
         )}
-
         <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>

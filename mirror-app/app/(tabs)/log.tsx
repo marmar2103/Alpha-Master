@@ -1,13 +1,14 @@
-import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import BottomSheet from '@gorhom/bottom-sheet';
 import { Colors } from '../../constants/colors';
 import { CheckInSheet } from '../../components/log/CheckInSheet';
+import { CelebrationOverlay } from '../../components/ui/CelebrationOverlay';
 
 export default function LogScreen() {
-  const sheetRef = useRef<BottomSheet | null>(null);
+  const sheetRef = useRef<BottomSheet>(null);
+  const [celebrating, setCelebrating] = useState(false);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -26,7 +27,8 @@ export default function LogScreen() {
         <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.bg }}>Start Check-In →</Text>
       </TouchableOpacity>
 
-      <CheckInSheet sheetRef={sheetRef} />
+      <CheckInSheet sheetRef={sheetRef} onSuccess={() => setCelebrating(true)} />
+      <CelebrationOverlay visible={celebrating} onComplete={() => setCelebrating(false)} />
     </SafeAreaView>
   );
 }
