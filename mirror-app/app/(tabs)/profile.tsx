@@ -6,17 +6,23 @@ import { Colors } from '../../constants/colors';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { Badge } from '../../components/ui/Badge';
+import { DeviceCard } from '../../components/wearables/DeviceCard';
+import { LiveMetricsCard } from '../../components/wearables/LiveMetricsCard';
+import { useWearables } from '../../hooks/useWearables';
+import { useWearableData, useProfile } from '../../hooks/useHealthData';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, signOut } = useAuthStore();
+  const { connections, connect, disconnect, syncData, isSyncing } = useWearables();
+  const { data: wearableData } = useWearableData();
+  useProfile(); // loads profile into store
 
   const handleSignOut = async () => {
     Alert.alert('Sign Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Sign Out',
-        style: 'destructive',
+        text: 'Sign Out', style: 'destructive',
         onPress: async () => {
           await supabase.auth.signOut();
           signOut();
@@ -29,10 +35,9 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
-        <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.text, fontFamily: 'Syne_800ExtraBold' }}>
-          Profile
-        </Text>
+        <Text style={{ fontSize: 26, fontWeight: '800', color: Colors.text, fontFamily: 'Syne_800ExtraBold' }}>Profile</Text>
 
+        {/* Avatar */}
         <View style={{ backgroundColor: Colors.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: Colors.border }}>
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: `${Colors.mint}22`, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.mint }}>
             <Text style={{ fontSize: 32 }}>👤</Text>
@@ -44,21 +49,33 @@ export default function ProfileScreen() {
           <Text style={{ fontSize: 13, color: Colors.muted }}>{user?.email}</Text>
         </View>
 
+        {/* Live biometrics */}
+        <LiveMetricsCard data={wearableData ?? null} />
+
+        {/* Wearables */}
         <View style={{ gap: 12 }}>
-          <Text style={{ fontSize: 14, color: Colors.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Health Data</Text>
-          <TouchableOpacity
-            style={{ backgroundColor: Colors.card, borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: Colors.border }}
-            accessibilityLabel="Connect Apple Health"
-          >
-            <Text style={{ fontSize: 24 }}>🍎</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: Colors.text, fontWeight: '600' }}>Apple Health</Text>
-              <Text style={{ color: Colors.muted, fontSize: 12 }}>Connect to sync sleep, HRV, steps</Text>
-            </View>
-            <Text style={{ color: Colors.muted, fontSize: 13 }}>Connect →</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, color: Colors.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Connected Devices</Text>
+            <TouchableOpacity onPress={syncData} disabled={isSyncing} accessibilityLabel="Sync wearable data">
+              <Text style={{ fontSize: 13, color: isSyncing ? Colors.muted : Colors.mint }}>
+                {isSyncing ? 'Syncing...' : '↻ Sync'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {connections.map((c) => (
+            <DeviceCard
+              key={c.source}
+              source={c.source}
+              connected={c.connected}
+              lastSync={c.lastSync}
+              onConnect={() => connect(c.source)}
+              onDisconnect={() => disconnect(c.source)}
+              isSyncing={isSyncing && c.connected}
+            />
+          ))}
         </View>
 
+        {/* Account */}
         <View style={{ gap: 12 }}>
           <Text style={{ fontSize: 14, color: Colors.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Account</Text>
           <TouchableOpacity

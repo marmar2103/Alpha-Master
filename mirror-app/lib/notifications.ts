@@ -13,7 +13,9 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return status === 'granted';
 }
 
-export async function scheduleMorningBriefing(userName: string, score: number, topInsight: string): Promise<void> {
+export async function scheduleAllNotifications(userName: string, score: number, topInsight: string): Promise<void> {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: `Good morning, ${userName}`,
@@ -21,9 +23,7 @@ export async function scheduleMorningBriefing(userName: string, score: number, t
     },
     trigger: { hour: 8, minute: 0, repeats: true },
   });
-}
 
-export async function scheduleEveningCheckIn(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'How are you feeling today?',
@@ -31,12 +31,20 @@ export async function scheduleEveningCheckIn(): Promise<void> {
     },
     trigger: { hour: 21, minute: 0, repeats: true },
   });
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Your weekly mirror report is ready',
+      body: 'See what your body learned this week.',
+    },
+    trigger: { weekday: 2, hour: 9, minute: 0, repeats: true },
+  });
 }
 
 export async function sendStressAlert(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Stress spike detected',
+      title: '⚠️ Stress spike detected',
       body: 'Your HRV dropped significantly. Consider a 5-min breathing break.',
     },
     trigger: null,

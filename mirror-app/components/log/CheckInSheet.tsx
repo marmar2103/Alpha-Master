@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Colors } from '../../constants/colors';
 import { HabitChecklist } from './HabitChecklist';
 import { useSubmitCheckin } from '../../hooks/useHealthData';
+import { useComputeScores } from '../../hooks/useComputeScores';
 import type { RefObject } from 'react';
 
 interface CheckInSheetProps {
@@ -28,14 +29,18 @@ export function CheckInSheet({ sheetRef, onSuccess }: CheckInSheetProps) {
   const [habits, setHabits] = useState<Partial<Record<HabitKey, boolean>>>({});
   const [notes, setNotes] = useState('');
   const { mutate: submitCheckin, isPending } = useSubmitCheckin();
+  const { mutate: computeScores } = useComputeScores();
 
   const snapPoints = ['80%', '95%'];
 
   const handleSubmit = () => {
+    const today = new Date().toISOString().split('T')[0];
     submitCheckin(
       { ...scores, ...habits, notes },
       {
-        onSuccess: () => {
+        onSuccess: (savedCheckin: Record<string, unknown> | null) => {
+          const checkinData = { ...(savedCheckin ?? {}), date: (savedCheckin as {date?: string})?.date ?? today };
+          computeScores({ checkin: checkinData as import('../../types/health').DailyCheckin });
           sheetRef.current?.close();
           onSuccess?.();
         },

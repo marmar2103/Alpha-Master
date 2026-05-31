@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
-import type { DailyCheckin } from '../types/health';
+import type { DailyCheckin, WearableData } from '../types/health';
 import type { ComputedScores } from '../types/scores';
 
 export function useTodayCheckin() {
@@ -65,5 +65,57 @@ export function useSubmitCheckin() {
       queryClient.invalidateQueries({ queryKey: ['checkin', today] });
       queryClient.invalidateQueries({ queryKey: ['scores'] });
     },
+  });
+}
+
+export function useWearableData(date?: string) {
+  const user = useAuthStore(s => s.user);
+  const targetDate = date ?? new Date().toISOString().split('T')[0];
+  return useQuery<WearableData | null>({
+    queryKey: ['wearable', targetDate, user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('wearable_data')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', targetDate)
+        .single();
+      return data as WearableData | null;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useScoreHistory(days = 30) {
+  const user = useAuthStore(s => s.user);
+  return useQuery<ComputedScores[]>({
+    queryKey: ['score_history', days, user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from('computed_scores')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true })
+        .limit(days);
+      return (data ?? []) as ComputedScores[];
+    },
+    enabled: !!user,
+  });
+}
+
+export function useProfile() {
+  const user = useAuthStore(s => s.user);
+  const setProfile = useAuthStore(s => s.setProfile);
+  return useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) setProfile(data as Parameters<typeof setProfile>[0]);
+      return data;
+    },
+    enabled: !!user,
   });
 }
