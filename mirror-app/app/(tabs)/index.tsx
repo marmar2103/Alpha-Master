@@ -1,31 +1,58 @@
-import { StyleSheet } from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import React, { useRef } from 'react';
+import { ScrollView, View, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+import { Colors } from '../../constants/colors';
+import { MirrorScoreHero } from '../../components/dashboard/MirrorScoreHero';
+import { ScoresGrid } from '../../components/dashboard/ScoresGrid';
+import { AIInsightBanner } from '../../components/dashboard/AIInsightBanner';
+import { WeeklyCalendar } from '../../components/dashboard/WeeklyCalendar';
+import { CorrelationMap } from '../../components/dashboard/CorrelationMap';
+import { CheckInSheet } from '../../components/log/CheckInSheet';
+import { useMirrorScore } from '../../hooks/useMirrorScore';
+import { useRecentScores } from '../../hooks/useHealthData';
+import { useAIInsights, useGenerateInsight } from '../../hooks/useAIInsights';
+import { useCorrelations } from '../../hooks/useCorrelations';
+import { useAuthStore } from '../../stores/authStore';
 
-export default function TabOneScreen() {
+export default function DashboardScreen() {
+  const sheetRef = useRef<BottomSheet | null>(null);
+  const { score, scores } = useMirrorScore();
+  const { data: recentScores = [], refetch, isRefetching } = useRecentScores(7);
+  const { data: insights = [] } = useAIInsights();
+  const { data: correlations = [] } = useCorrelations();
+  const { mutate: generateInsight, isPending: isGenerating } = useGenerateInsight();
+  const profile = useAuthStore(s => s.profile);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 20 }}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.mint} />}
+      >
+        <MirrorScoreHero
+          score={score}
+          userName={profile?.display_name ?? undefined}
+          badges={score && score > 70 ? [{ label: '↑ Great day', color: Colors.mint }] : []}
+        />
+
+        <ScoresGrid scores={scores} />
+
+        <AIInsightBanner
+          insights={insights}
+          onGenerateNew={() => generateInsight('daily')}
+          isGenerating={isGenerating}
+        />
+
+        <WeeklyCalendar scores={recentScores as any} />
+
+        <CorrelationMap correlations={correlations as any} />
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+
+      <CheckInSheet sheetRef={sheetRef} />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-});
